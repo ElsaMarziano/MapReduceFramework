@@ -1,5 +1,9 @@
 #include <pthread.h>
 #include <MapReduceFramework.h>
+#include <iostream>
+#include <vector>
+#include <string>
+
 
 pthread_t[] threads;
 pthread_mutex_t waitMutex;
@@ -66,6 +70,9 @@ void closeJobHandle (JobHandle job)
 {
 //  Free everything, delete all threads
   pthread_mutex_destroy (&waitMutex);
+  for(pthread_t thread: threads) {
+    pthread_cancel(thread);
+  }
 }
 
 void runThread () // Parameters: maybe pid?
@@ -85,5 +92,10 @@ void runThread () // Parameters: maybe pid?
 // Once done waiting for the shuffles, take a vector from the shuffled
 // vectors and run reduce on it until there are no more vectors.
 
+}
+
+void systemError(string text) {
+  std::cout << "system error: "<< text << std::endl;
+  exit(1);
 }
 	
