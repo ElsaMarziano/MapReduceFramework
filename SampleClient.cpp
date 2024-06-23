@@ -32,6 +32,7 @@ public:
 class CounterClient : public MapReduceClient {
 public:
 	void map(const K1* key, const V1* value, void* context) const {
+      printf("In map\n");
 		std::array<int, 256> counts;
 		counts.fill(0);
 		for(const char& c : static_cast<const VString*>(value)->content) {
@@ -81,7 +82,7 @@ int main(int argc, char** argv)
     JobState last_state={UNDEFINED_STAGE,0};
 	JobHandle job = startMapReduceJob(client, inputVec, outputVec, 4);
 	getJobState(job, &state);
-    
+
 	while (state.stage != REDUCE_STAGE || state.percentage != 100.0)
 	{
         if (last_state.stage != state.stage || last_state.percentage != state.percentage){
