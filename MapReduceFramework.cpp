@@ -14,7 +14,7 @@ int inputLength = 0;
 
 // Context is whatever we want it to be - we get it from map, and we're the
 // ones to call map.
-// Should probably contain the input, output and and intermediate pointers
+// Should probably contain the input, output and intermediate pointers
 void emit2 (K2 *key, V2 *value, void *context)
 {
 
@@ -36,7 +36,7 @@ JobHandle startMapReduceJob (const MapReduceClient &client,
     // create threads
     pthread_t thread;
     pthread_create (thread, null, runThread, null);
-    threads.push_back (thread);
+    JobContext.addThread (thread); //TODO check the implementation in JobContext
   }
 }
 

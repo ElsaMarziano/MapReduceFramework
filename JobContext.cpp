@@ -29,3 +29,21 @@ void JobContext::waitForJob() {
     }
 }
 
+void JobContext::runThread()
+{
+    client.map(nullptr, nullptr, nullptr);
+
+}
+
+void JobContext::getJobState(JobState* state)
+{
+    pthread_mutex_lock(&jobMutex);
+    state->stage = stage;
+    pthread_mutex_unlock(&jobMutex);
+}
+
+void JobContext::addThread(pthread_t thread)
+{
+    threads.push_back(thread);
+}
+
