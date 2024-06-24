@@ -21,12 +21,12 @@ void systemError (string text)
 // Should probably contain the input, output and intermediate pointers
 void emit2 (K2 *key, V2 *value, void *context)
 {
-  printf("emit2");
 //  Add key and value to the intermediate vector of the calling thread
   auto *castContext = static_cast<ThreadContext *>(context);
-  castContext->intermediateVector->push_back (std::make_pair(key, value));
-printf("end emit2");
+  castContext->intermediateVector->push_back (std::make_pair (key,
+                                                              value));
 }
+
 void emit3 (K3 *key, V3 *value, void *context)
 {
 
@@ -54,26 +54,26 @@ void waitForJob (JobHandle job)
 
 void getJobState (JobHandle job, JobState *state)
 {
-  auto it = jobs.find(job);
-  if (it == jobs.end())
+  auto it = jobs.find (job);
+  if (it == jobs.end ())
   {
-    systemError("Job not found");
+    systemError ("Job not found");
   }
-  *state = it->second->getJobState();
+  *state = it->second->getJobState ();
 }
 
 void closeJobHandle (JobHandle job)
 {
   {
 //    std::lock_guard<std::mutex> lock(jobsMutex);
-    auto it = jobs.find(job);
-    if (it == jobs.end())
+    auto it = jobs.find (job);
+    if (it == jobs.end ())
     {
-      systemError("Job not found");
+      systemError ("Job not found");
     }
-    waitForJob(job);
+    waitForJob (job);
     delete it->second;
-    jobs.erase(it);
+    jobs.erase (it);
   }
 }
 

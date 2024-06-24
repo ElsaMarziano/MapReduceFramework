@@ -1,46 +1,49 @@
 #include "JobContext.h"
 #include <pthread.h>
-void *runThread(void *context)
+void *runThread (void *context)
 {
   auto *castContext = static_cast<ThreadContext *>(context);
   auto &jobContext = castContext->jobContext;
 
-  long unsigned int old_value = 0;
-  printf("new thread\n");
+  long unsigned int old_value = castContext->atomic_length.fetch_add (1);
 
-  while ((old_value = castContext->atomic_length.fetch_add(1)) < jobContext->getInputLength())
+  while (old_value < jobContext->getInputLength ())
   {
-    printf("old value %ld\n", old_value);
+    printf ("while - thread id %d \n", castContext->threadId);
 
     if (old_value == 0)
     {
-      pthread_mutex_lock(&jobContext->jobMutex);
-      jobContext->setJobState({MAP_STAGE, 0}); // Enter map stage
-      pthread_mutex_unlock(&jobContext->jobMutex);
+      jobContext->setJobState ({MAP_STAGE, 0}); // Enter map stage
     }
-    jobContext->getClient().map(jobContext->getInputVec()[old_value].first,
-                               jobContext->getInputVec()[old_value].second,
-                               &context);
-
-    float result = static_cast<float>(100.0f * static_cast<float>(castContext->atomic_length.load()) /
-                                      jobContext->getInputLength());
-    if (old_value == jobContext->getInputLength() - 1)
+    jobContext->getClient ().map (jobContext->getInputVec ()[old_value].first,
+                                  jobContext->getInputVec ()[old_value].second,
+                                  context);
+    printf ("after map, atomic: %ld %d\n", castContext->atomic_length.load (),
+            castContext->threadId);
+    float result = static_cast<float>(100.0f
+                                      * static_cast<float>(castContext->atomic_length.load ())
+                                      /
+                                      jobContext->getInputLength ());
+    if (castContext->atomic_length.load () == jobContext->getInputLength ())
     {
-      result = 100.0f;
+      jobContext->setJobState ({MAP_STAGE, 100.0f});
+      break;
+    }
+    else if (old_value < jobContext->getInputLength () - 1)
+    {
+      old_value = castContext->atomic_length.fetch_add (1);
     }
 
-    pthread_mutex_lock(&jobContext->jobMutex);
-    jobContext->setJobState({MAP_STAGE, result});
-    pthread_mutex_unlock(&jobContext->jobMutex);
+    printf ("before set state, atomic: %ld %d\n", castContext->atomic_length
+                .load (),
+            castContext->threadId);
+    jobContext->setJobState ({MAP_STAGE, result});
   }
-
-  printf("out %d\n", castContext->threadId);
+  printf ("out %d\n", castContext->threadId);
 
   // Additional synchronization logic here if needed
-
   return nullptr;
 }
-
 
 JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
                         OutputVec &outputVec, int multiThreadLevel)
@@ -64,9 +67,11 @@ JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
 
 JobContext::~JobContext ()
 {
-    for (auto context : threadContexts) {
-        delete context;
-    }
+  for (auto context: threadContexts)
+  {
+    context->intermediateVector->clear ();
+    delete context;
+  }
   for (auto it = threads.begin (); it != threads.end ();)
   {
     pthread_cancel (*it);  // Cancel the thread
