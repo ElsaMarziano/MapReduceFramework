@@ -1,30 +1,44 @@
 #include "JobContext.h"
 #include <pthread.h>
+#include <iostream>
+using namespace std;
+
+void jobSystemError (string text)
+{
+  std::cout << "system error: " << text << std::endl;
+  exit (1);
+}
+
 void *runThread (void *context)
 {
   auto *castContext = static_cast<ThreadContext *>(context);
   auto &jobContext = castContext->jobContext;
 
+
+  /**
+   *------------------------------ MAP PHASE -------------------------------
+   */
   long unsigned int old_value = castContext->atomic_length.fetch_add (1);
 
   while (old_value < jobContext->getInputLength ())
   {
-    printf ("while - thread id %d \n", castContext->threadId);
-
+//    If this is the first iteration, set the job state to 0 - we're
+//    entering map stage
     if (old_value == 0)
     {
-      jobContext->setJobState ({MAP_STAGE, 0}); // Enter map stage
+      jobContext->setJobState ({MAP_STAGE, 0});
     }
+//    Map over the input we got
     jobContext->getClient ().map (jobContext->getInputVec ()[old_value].first,
                                   jobContext->getInputVec ()[old_value].second,
                                   context);
-    printf ("after map, atomic: %ld %d\n", castContext->atomic_length.load (),
-            castContext->threadId);
+//    Update state
     float result = static_cast<float>(100.0f
                                       * static_cast<float>(castContext->atomic_length.load ())
                                       /
                                       jobContext->getInputLength ());
-    if (castContext->atomic_length.load () == jobContext->getInputLength ())
+    if (castContext->atomic_length.load ()
+        >= jobContext->getInputLength () - 1)
     {
       jobContext->setJobState ({MAP_STAGE, 100.0f});
       break;
@@ -32,14 +46,9 @@ void *runThread (void *context)
     else if (old_value < jobContext->getInputLength () - 1)
     {
       old_value = castContext->atomic_length.fetch_add (1);
+      jobContext->setJobState ({MAP_STAGE, result});
     }
-
-    printf ("before set state, atomic: %ld %d\n", castContext->atomic_length
-                .load (),
-            castContext->threadId);
-    jobContext->setJobState ({MAP_STAGE, result});
   }
-  printf ("out %d\n", castContext->threadId);
 
   // Additional synchronization logic here if needed
   return nullptr;
@@ -116,14 +125,14 @@ void JobContext::waitForJob ()
 
 JobState JobContext::getJobState ()
 {
-//  if (state.stage == MAP_STAGE)
-//  {
-//    float result = static_cast<float>(100.0f
-//                                      * static_cast<float>(atomic_length) /
-//                                      inputLength);
-//    state.percentage = result;
-//
-//  }
+  if (state.stage == MAP_STAGE)
+  {
+    float result = static_cast<float>(100.0f
+                                      * static_cast<float>(atomic_length) /
+                                      inputLength);
+    if(result > 100) result = 100.0f;
+    state.percentage = result;
+  }
   return state;
 }
 
@@ -134,7 +143,10 @@ void JobContext::addThread (int id)
 
   pthread_attr_t attr;
   pthread_attr_init (&attr);
-  pthread_create (&thread, &attr, runThread, static_cast<void *>(context));
+  if(pthread_create (&thread, &attr, runThread, static_cast<void *>
+  (context)) != 0)  {
+    jobSystemError("Could not create thread");
+  };
   pthread_attr_destroy (&attr);
   threadContexts.push_back (context);
   threads.push_back (thread);
