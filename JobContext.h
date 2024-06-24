@@ -24,7 +24,7 @@ class JobContext
 
   void waitForJob ();
   JobState getJobState ();
-  void addThread ();
+  void addThread (int id);
   InputVec getInputVec ();
   OutputVec getOutputVec ();
   long unsigned int getInputLength ();
@@ -52,13 +52,15 @@ class JobContext
 
 };
 struct ThreadContext {
+    int threadId;
     std::vector<std::pair<K2*, V2*>>* intermediateVector;
     std::atomic<long unsigned int>& atomic_length;
     JobContext* jobContext;
 
-    ThreadContext(std::atomic<long unsigned int>& atomic_length, JobContext*
+    ThreadContext(int id, std::atomic<long unsigned int>& atomic_length,
+                  JobContext*
     jobContext)
-        : atomic_length(atomic_length), jobContext(jobContext) {
+        : threadId(id), atomic_length(atomic_length), jobContext(jobContext) {
       intermediateVector = new std::vector<std::pair<K2*, V2*>>();
     }
 

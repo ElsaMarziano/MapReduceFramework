@@ -24,8 +24,7 @@ void emit2 (K2 *key, V2 *value, void *context)
   printf("emit2");
 //  Add key and value to the intermediate vector of the calling thread
   auto *castContext = static_cast<ThreadContext *>(context);
-  castContext->intermediateVector->push_back (std::pair<K2 *, V2 *> (key,
-                                                                     value));
+  castContext->intermediateVector->push_back (std::make_pair(key, value));
 printf("end emit2");
 }
 void emit3 (K3 *key, V3 *value, void *context)
@@ -41,7 +40,6 @@ JobHandle startMapReduceJob (const MapReduceClient &client,
                                     multiThreadLevel);
   JobHandle jobHandle = new JobHandle ();
   jobs[jobHandle] = job;
-
   return jobHandle;
 }
 

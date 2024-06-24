@@ -34,7 +34,7 @@ void *runThread(void *context)
     pthread_mutex_unlock(&jobContext->jobMutex);
   }
 
-  printf("out\n");
+  printf("out %d\n", castContext->threadId);
 
   // Additional synchronization logic here if needed
 
@@ -57,7 +57,7 @@ JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
 //  TODO Save this in bits somehow
   for (int i = 0; i < multiThreadLevel; i++)
   {
-    addThread ();
+    addThread (i);
   }
 
 }
@@ -122,10 +122,10 @@ JobState JobContext::getJobState ()
   return state;
 }
 
-void JobContext::addThread ()
+void JobContext::addThread (int id)
 {
   pthread_t thread;
-  auto *context = new ThreadContext (atomic_length, this);
+  auto *context = new ThreadContext (id, atomic_length, this);
 
   pthread_attr_t attr;
   pthread_attr_init (&attr);
