@@ -1,6 +1,8 @@
 #include "JobContext.h"
 #include <pthread.h>
 #include <iostream>
+#include <algorithm>
+
 using namespace std;
 
 void jobSystemError (string text)
@@ -13,7 +15,6 @@ void *runThread (void *context)
 {
   auto *castContext = static_cast<ThreadContext *>(context);
   auto &jobContext = castContext->jobContext;
-
 
   /**
    *------------------------------ MAP PHASE -------------------------------
@@ -50,13 +51,32 @@ void *runThread (void *context)
     }
   }
 
+  /**
+   * Sorting
+   */
   std::sort (castContext->intermediateVector->begin (),
              castContext->intermediateVector->end (),
              [](const std::pair<K2 *, V2 *> &a, const std::pair<K2 *, V2 *> &b)
              {
                return *a.first < *b.first;
              });
-  // Additional synchronization logic here if needed
+  jobContext->intermediaryVectors.push_back (castContext->intermediateVector);
+
+  /**
+   * ------------------------------- SHUFFLE PHASE -------------------------------
+   */
+  if(castContext->threadId == 0)
+  {
+    jobContext->setJobState ({SHUFFLE_STAGE, 0});
+//    for(auto &vector: jobContext->intermediaryVectors)
+//    {
+//      for(auto &pair: *vector)
+//      {
+//        jobContext->shuffledVectors[pair.first->hash() % jobContext->multiThreadLevel].push_back(pair);
+//      }
+//    }
+  }
+
   return nullptr;
 }
 
