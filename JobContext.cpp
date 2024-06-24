@@ -80,6 +80,43 @@ void *runThread (void *context)
 //        jobContext->shuffledVectors[pair.first->hash() % jobContext->multiThreadLevel].push_back(pair);
 //      }
 //    }
+
+  /**
+   * ------------------------------- REDUCE PHASE -------------------------------
+   */
+      long unsigned int old_value = castContext->atomic_length.fetch_add (1);
+      castContext->atomic_length.store(0);
+
+      while (old_value < jobContext->getInputLength ())
+      {
+//    If this is the first iteration, set the job state to 0 - we're
+//    entering map stage
+          if (old_value == 0)
+          {
+              jobContext->setJobState ({REDUCE_STAGE, 0});
+          }
+//    Reduce over the intermediate we got
+          jobContext->getClient ().reduce(castContext->shuffledVector[old_value].first,
+                                         castContext->shuffledVector[old_value].second,
+                                         context);
+//    Update state
+          float result = static_cast<float>(100.0f
+                                            * static_cast<float>(castContext->atomic_length.load ())
+                                            /
+                                            jobContext->getInputLength ());
+          if (castContext->atomic_length.load ()
+              >= jobContext->getShuffledVectors().size() - 1)
+          {
+              jobContext->setJobState ({REDUCE_STAGE, 100.0f});
+              break;
+          }
+          else if (old_value < jobContext->getShuffledVectors().size() - 1)
+          {
+              old_value = castContext->atomic_length.fetch_add (1);
+              jobContext->setJobState ({REDUCE_STAGE, result});
+          }
+      }
+
   }
 
   return nullptr;
@@ -208,6 +245,11 @@ const MapReduceClient &JobContext::getClient () const
 Barrier *JobContext::getBarrier ()
 {
   return barrier;
+}
+
+std::vector<std::vector<std::pair<K2 *, V2 *>>> JobContext::getShuffledVectors ()
+{
+  return std::vector<std::vector<std::pair<K2 *, V2 *>>>();
 }
 
 void JobContext::setJobState (JobState state)

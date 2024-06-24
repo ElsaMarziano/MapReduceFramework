@@ -34,6 +34,7 @@ class JobContext
   long unsigned int getInputLength ();
   void setJobState (JobState state);
   const MapReduceClient &getClient () const;
+  std::vector<std::vector<std::pair<K2*, V2*>>> getShuffledVectors();
 
   pthread_mutex_t jobMutex;
   pthread_cond_t jobCond;
