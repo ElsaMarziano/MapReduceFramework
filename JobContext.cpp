@@ -47,6 +47,9 @@ void *runThread (void *context)
              {
                return *a.first < *b.first;
              });
+
+    jobContext->getBarrier().barrier();
+    printf("after barrier %d\n", castContext->threadId);
   // Additional synchronization logic here if needed
   return nullptr;
 }
@@ -55,13 +58,15 @@ JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
                         OutputVec &outputVec, int multiThreadLevel)
     : client (client), inputVec (inputVec), outputVec (outputVec),
       multiThreadLevel (multiThreadLevel), state ({UNDEFINED_STAGE, 0}),
-      jobFinished (false), atomic_length (0)
+      jobFinished (false), atomic_length (0), barrier (multiThreadLevel)
 {
   pthread_mutex_init (&jobMutex, nullptr
   );
   pthread_cond_init (&jobCond, nullptr
   );
   inputLength = inputVec.size ();
+
+  Barrier barrier(multiThreadLevel);
 
 //  TODO Save this in bits somehow
   for (int i = 0; i < multiThreadLevel; i++)
@@ -164,6 +169,11 @@ long unsigned int JobContext::getInputLength ()
 const MapReduceClient &JobContext::getClient () const
 {
   return client;
+}
+
+Barrier JobContext::getBarrier ()
+{
+  return barrier;
 }
 
 void JobContext::setJobState (JobState state)

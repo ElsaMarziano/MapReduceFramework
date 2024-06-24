@@ -11,6 +11,8 @@
 #include <atomic>
 #include <vector>
 #include <utility>
+#include "Barrier.h"
+#include <algorithm>
 
 using namespace std;
 
@@ -28,6 +30,7 @@ class JobContext
   void addThread (int id);
   InputVec getInputVec ();
   OutputVec getOutputVec ();
+  Barrier getBarrier ();
   long unsigned int getInputLength ();
   void setJobState (JobState state);
   pthread_mutex_t jobMutex;
@@ -50,6 +53,7 @@ class JobContext
   JobState state;
   bool jobFinished;
   std::atomic<long unsigned int> atomic_length;
+  Barrier barrier;
 
 };
 
@@ -58,6 +62,7 @@ struct ThreadContext {
     std::unique_ptr<std::vector<std::pair<K2*, V2*>>> intermediateVector;
     std::atomic<long unsigned int>& atomic_length;
     JobContext* jobContext;
+
 
     ThreadContext(int id, std::atomic<long unsigned int>& atomic_length, JobContext* jobContext)
         : threadId(id), intermediateVector(new std::vector<std::pair<K2*,
