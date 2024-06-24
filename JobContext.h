@@ -30,13 +30,18 @@ class JobContext
   void addThread (int id);
   InputVec getInputVec ();
   OutputVec getOutputVec ();
-  Barrier getBarrier ();
+  Barrier* getBarrier ();
   long unsigned int getInputLength ();
   void setJobState (JobState state);
+  const MapReduceClient &getClient () const;
+
   pthread_mutex_t jobMutex;
   pthread_cond_t jobCond;
 
-  const MapReduceClient &getClient () const;
+  //std::vector<<std::vector<std::pair<K2*, V2*>>>> intermediateVectors;
+  //std::vector<<std::vector<std::pair<K2*, V2*>>>> shuffledVectors;
+
+
 
 
  private:
@@ -53,7 +58,7 @@ class JobContext
   JobState state;
   bool jobFinished;
   std::atomic<long unsigned int> atomic_length;
-  Barrier barrier;
+  Barrier *barrier;
 
 };
 
