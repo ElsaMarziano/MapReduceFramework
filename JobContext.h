@@ -5,6 +5,8 @@
 #ifndef MAPREDUCEFRAMEWORK_JOBCONTEXT_H
 #define MAPREDUCEFRAMEWORK_JOBCONTEXT_H
 #include "MapReduceFramework.h"
+#include "Barrier.h"
+
 #include <pthread.h>
 #include <iostream>
 #include <memory>
@@ -12,7 +14,8 @@
 #include <vector>
 #include <utility>
 #include <set>
-
+#include <algorithm>
+#include <semaphore.h>
 
 using namespace std;
 
@@ -30,6 +33,7 @@ class JobContext
   void addThread (int id);
   InputVec getInputVec ();
   OutputVec getOutputVec ();
+  Barrier* getBarrier ();
   long unsigned int getInputLength ();
   void setJobState (JobState state);
   const MapReduceClient &getClient () const;
@@ -39,10 +43,10 @@ class JobContext
   std::set<K2*> getUniqueKeySet();
   std::vector<std::vector<std::pair<K2*, V2*>>> getIntermediateVectors();
   std::vector<std::vector<std::pair<K2*, V2*>>> getShuffledVectors();
+  sem_t* getShuffleSemaphore();
     void setShuffledVectors(std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors);
-    void insertToUniqueKeySet(std::vector<K2*> unique_key_set);
+    void insertToUniqueKeySet(K2* unique_key);
     void insertToIntermediateVectors(std::vector<std::pair<K2*, V2*>> intermediate_vector);
-
 
 
 
@@ -64,6 +68,8 @@ class JobContext
   std::set<K2*> uniqueKeySet;
   std::vector<std::vector<std::pair<K2*, V2*>>> intermediateVectors;
   std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors;
+  Barrier *barrier;
+  sem_t shuffleSemaphore;  // Semaphore to control shuffle synchronization
 
 };
 
