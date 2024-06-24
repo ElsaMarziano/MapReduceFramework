@@ -50,6 +50,12 @@ void *runThread (void *context)
     }
   }
 
+  std::sort (castContext->intermediateVector->begin (),
+             castContext->intermediateVector->end (),
+             [](const std::pair<K2 *, V2 *> &a, const std::pair<K2 *, V2 *> &b)
+             {
+               return *a.first < *b.first;
+             });
   // Additional synchronization logic here if needed
   return nullptr;
 }
