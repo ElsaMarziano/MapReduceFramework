@@ -10,7 +10,7 @@ void *runThread(void *context)
 
   while ((old_value = castContext->atomic_length.fetch_add(1)) < jobContext->getInputLength())
   {
-    printf("old value %d\n", old_value);
+    printf("old value %ld\n", old_value);
 
     if (old_value == 0)
     {
@@ -64,6 +64,9 @@ JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
 
 JobContext::~JobContext ()
 {
+    for (auto context : threadContexts) {
+        delete context;
+    }
   for (auto it = threads.begin (); it != threads.end ();)
   {
     pthread_cancel (*it);  // Cancel the thread
@@ -156,7 +159,6 @@ void JobContext::setJobState (JobState state)
 {
   pthread_mutex_lock (&jobMutex);
   this->state = state;
-  pthread_cond_broadcast (&jobCond);
   pthread_cond_broadcast (&jobCond);
   pthread_mutex_unlock (&jobMutex);
 }
