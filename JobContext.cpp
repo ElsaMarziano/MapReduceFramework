@@ -56,28 +56,48 @@ void *runThread (void *context)
    */
   std::sort (castContext->intermediateVector->begin (),
              castContext->intermediateVector->end (),
-             [](const std::pair<K2 *, V2 *> &a, const std::pair<K2 *, V2 *> &b)
+             [] (const std::pair<K2 *, V2 *> &a, const std::pair<K2 *, V2 *> &b)
              {
-               return *a.first < *b.first;
+                 return *a.first < *b.first;
              });
-  jobContext->intermediaryVectors.push_back (castContext->intermediateVector);
+  jobContext->insertToIntermediateVectors (*(castContext->intermediateVector));
+  std::vector < K2 * > unique_keys;
+  for (size_t i = 0; i < castContext->intermediateVector->size (); ++i)
+  {
+    // If it's the first element or the current key is different from the previous key
+    if (i == 0 || (*castContext->intermediateVector)[i].first !=
+                  (*castContext->intermediateVector)[i - 1].first)
+    {
+      unique_keys.push_back ((*castContext->intermediateVector)[i].first);
+    }
+  }
+  jobContext->insertToUniqueKeySet (unique_keys);
+
 
   /**
    * ------------------------------- SHUFFLE PHASE -------------------------------
    */
-  if(castContext->threadId == 0)
+  if (castContext->threadId == 0)
   {
     jobContext->setJobState ({SHUFFLE_STAGE, 0});
-//    for(auto &vector: jobContext->intermediaryVectors)
-//    {
-//      for(auto &pair: *vector)
-//      {
-//        jobContext->shuffledVectors[pair.first->hash() % jobContext->multiThreadLevel].push_back(pair);
-//      }
-//    }
+    for (auto key: jobContext->getUniqueKeySet ())
+    {
+      std::vector <std::pair<K2 *, V2 *>> key_vector;
+      for (auto vector: jobContext->getIntermediateVectors ())
+      {
+        while (vector.back ().first == key)
+        {
+          key_vector.push_back (vector.back ());
+          vector.pop_back ();
+          // set sate
+        }
+      }
+//      jobContext->insertToShuffledVectors (key_vector);
+    }
   }
 
-  return nullptr;
+  return
+      nullptr;
 }
 
 JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
@@ -156,7 +176,7 @@ JobState JobContext::getJobState ()
     float result = static_cast<float>(100.0f
                                       * static_cast<float>(atomic_length) /
                                       inputLength);
-    if(result > 100) result = 100.0f;
+    if (result > 100) result = 100.0f;
     state.percentage = result;
   }
   return state;
@@ -169,9 +189,10 @@ void JobContext::addThread (int id)
 
   pthread_attr_t attr;
   pthread_attr_init (&attr);
-  if(pthread_create (&thread, &attr, runThread, static_cast<void *>
-  (context)) != 0)  {
-    jobSystemError("Could not create thread");
+  if (pthread_create (&thread, &attr, runThread, static_cast<void *>
+  (context)) != 0)
+  {
+    jobSystemError ("Could not create thread");
   };
   pthread_attr_destroy (&attr);
   threadContexts.push_back (context);
@@ -198,12 +219,37 @@ const MapReduceClient &JobContext::getClient () const
   return client;
 }
 
+std::vector <std::vector<std::pair < K2 * , V2 *>>>
+JobContext::getIntermediateVectors ()
+{
+  return intermediateVectors;
+}
+
 void JobContext::setJobState (JobState state)
 {
   pthread_mutex_lock (&jobMutex);
   this->state = state;
   pthread_cond_broadcast (&jobCond);
   pthread_mutex_unlock (&jobMutex);
+}
+
+void JobContext::insertToUniqueKeySet (std::vector<K2 *> uniqueKey)
+{
+  for (auto key: uniqueKey)
+  {
+    uniqueKeySet.insert (key);
+  }
+}
+
+std::set<K2 *> JobContext::getUniqueKeySet ()
+{
+  return uniqueKeySet;
+}
+
+void JobContext::insertToIntermediateVectors (std::vector <std::pair<K2 *,
+    V2 *>> intermediateVector)
+{
+  intermediateVectors.push_back (intermediateVector);
 }
 
 

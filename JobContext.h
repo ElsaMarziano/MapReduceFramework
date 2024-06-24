@@ -11,6 +11,8 @@
 #include <atomic>
 #include <vector>
 #include <utility>
+#include <set>
+
 
 using namespace std;
 
@@ -34,9 +36,13 @@ class JobContext
 
   pthread_mutex_t jobMutex;
   pthread_cond_t jobCond;
+  std::set<K2*> getUniqueKeySet();
+  std::vector<std::vector<std::pair<K2*, V2*>>> getIntermediateVectors();
+  std::vector<std::vector<std::pair<K2*, V2*>>> getShuffledVectors();
+    void setShuffledVectors(std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors);
+    void insertToUniqueKeySet(std::vector<K2*> unique_key_set);
+    void insertToIntermediateVectors(std::vector<std::pair<K2*, V2*>> intermediate_vector);
 
-  std::vector<<std::vector<std::pair<K2*, V2*>>>> intermediateVectors;
-  std::vector<<std::vector<std::pair<K2*, V2*>>>> shuffledVectors;
 
 
 
@@ -55,6 +61,9 @@ class JobContext
   JobState state;
   bool jobFinished;
   std::atomic<long unsigned int> atomic_length;
+  std::set<K2*> uniqueKeySet;
+  std::vector<std::vector<std::pair<K2*, V2*>>> intermediateVectors;
+  std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors;
 
 };
 
