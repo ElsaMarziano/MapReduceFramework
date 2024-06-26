@@ -22,15 +22,23 @@ void systemError (string text)
 void emit2 (K2 *key, V2 *value, void *context)
 {
 //  Add key and value to the intermediate vector of the calling thread
+
   auto *castContext = static_cast<ThreadContext *>(context);
+  pthread_mutex_lock (&castContext->jobContext->jobMutex);
   castContext->intermediateVector->push_back (std::make_pair (key,
                                                               value));
+  pthread_mutex_unlock (&castContext->jobContext->jobMutex);
+
 }
 
 void emit3 (K3 *key, V3 *value, void *context)
 {
     auto* castContext = static_cast<ThreadContext*>(context);
-    castContext->getOutputVec()->push_back(std::make_pair(key, value));
+  pthread_mutex_lock (&castContext->jobContext->jobMutex);
+    castContext->jobContext->getOutputVec().push_back(std::make_pair(key,
+                                                                   value));
+  pthread_mutex_unlock (&castContext->jobContext->jobMutex);
+
 }
 
 JobHandle startMapReduceJob (const MapReduceClient &client,

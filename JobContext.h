@@ -41,12 +41,12 @@ class JobContext
   pthread_mutex_t jobMutex;
   pthread_cond_t jobCond;
   std::set<K2*> getUniqueKeySet();
-  std::vector<std::vector<std::pair<K2*, V2*>>> getIntermediateVectors();
-  std::vector<std::vector<std::pair<K2*, V2*>>> getShuffledVectors();
+  std::vector<IntermediateVec> getIntermediateVectors();
+  std::vector<IntermediateVec> getShuffledVectors();
   sem_t* getShuffleSemaphore();
-    void setShuffledVectors(std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors);
+    void insertToShuffledVectors(IntermediateVec     vectors);
     void insertToUniqueKeySet(K2* unique_key);
-    void insertToIntermediateVectors(std::vector<std::pair<K2*, V2*>> intermediate_vector);
+    void insertToIntermediateVectors(IntermediateVec intermediate_vector);
 
 
 
@@ -64,7 +64,7 @@ class JobContext
 
   JobState state;
   bool jobFinished;
-  std::atomic<long unsigned int> atomic_length;
+  std::atomic<long unsigned int> atomic;
   std::set<K2*> uniqueKeySet;
   std::vector<std::vector<std::pair<K2*, V2*>>> intermediateVectors;
   std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors;
@@ -76,13 +76,13 @@ class JobContext
 struct ThreadContext {
     int threadId;
     std::unique_ptr<std::vector<std::pair<K2*, V2*>>> intermediateVector;
-    std::atomic<long unsigned int>& atomic_length;
+    std::atomic<long unsigned int>& atomic;
     JobContext* jobContext;
 
-    ThreadContext(int id, std::atomic<long unsigned int>& atomic_length, JobContext* jobContext)
+    ThreadContext(int id, std::atomic<long unsigned int>& atomic, JobContext* jobContext)
         : threadId(id), intermediateVector(new std::vector<std::pair<K2*,
-                                           V2*>>()), atomic_length
-                                           (atomic_length),
+                                           V2*>>()), atomic
+                                           (atomic),
                                            jobContext(jobContext)
           {}
 
