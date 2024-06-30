@@ -64,8 +64,7 @@ void *runThread (void *context)
                     return *b.first < *a.first;
                 });
      jobContext->insertToIntermediateVectors (*(castContext->intermediateVector));
-
-     for (size_t i = 0; i < castContext->intermediateVector->size(); i++)
+     for (size_t i = 0; i < castContext->intermediateVector->size (); i++)
      {
        // If it's the first element or the current key is different from the previous key
        if (i == 0 || (*castContext->intermediateVector)[i].first !=
@@ -80,7 +79,7 @@ void *runThread (void *context)
   /**
    * ------------------------------- SHUFFLE PHASE -------------------------------
    */
-  printf("key vector : %ld\n", jobContext->getUniqueKeySet().size());
+  printf("key vector : %ld\n", jobContext->getUniqueKetSet().size());
 
   if (castContext->threadId == 0)
   {
@@ -89,9 +88,9 @@ void *runThread (void *context)
     for (auto key: jobContext->getUniqueKeySet ())
     {
       IntermediateVec key_vector;
-      for (auto &vector: jobContext->getIntermediateVectors ())
+      for (auto vector: jobContext->getIntermediateVectors ())
       {
-        while (!vector.empty() && vector.back ().first == key)
+        while (vector.back ().first == key)
         {
           key_vector.push_back (vector.back ());
           vector.pop_back ();
@@ -101,7 +100,7 @@ void *runThread (void *context)
                                                 /
                                                 jobContext->getInputLength ());
           jobContext->setJobState ({SHUFFLE_STAGE, result});
-          // set state
+          // set sate
         }
       }
       jobContext->insertToShuffledVectors (key_vector);
@@ -130,7 +129,7 @@ void *runThread (void *context)
       jobContext->setJobState ({REDUCE_STAGE, 0});
     }
     printf("Thread %d is in REDUCE PHASE %d %ld\n", castContext->threadId,
-           old_value, jobContext->getShuffledVectors().size());
+           old_value, jobContext->getShuffledVectors ().size());
 
 //    Reduce over the intermediate we got
     jobContext->getClient ().reduce
@@ -165,8 +164,10 @@ JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
       multiThreadLevel (multiThreadLevel), state ({UNDEFINED_STAGE, 0}),
       jobFinished (false), atomic (0)
 {
-  pthread_mutex_init (&jobMutex, nullptr);
-  pthread_cond_init (&jobCond, nullptr);
+  pthread_mutex_init (&jobMutex, nullptr
+  );
+  pthread_cond_init (&jobCond, nullptr
+  );
   inputLength = inputVec.size ();
   barrier = new Barrier (multiThreadLevel);
   sem_init(&shuffleSemaphore, 0, 0);  // Initialize semaphore with value 0
@@ -326,10 +327,7 @@ sem_t *JobContext::getShuffleSemaphore ()
 
 void JobContext::insertToIntermediateVectors (IntermediateVec intermediateVector)
 {
-    pthread_mutex_lock(&jobMutex);
-    intermediateVectors.push_back(intermediateVector);
-    pthread_cond_broadcast(&jobCond);
-    pthread_mutex_unlock(&jobMutex);
+  intermediateVectors.push_back (intermediateVector);
 }
 
 
