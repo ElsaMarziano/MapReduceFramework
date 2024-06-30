@@ -21,6 +21,13 @@ using namespace std;
 
 struct ThreadContext;
 
+struct K2Comparator {
+    bool operator()(const K2* key1, const K2* key2) const {
+		return (*key1)<(*key2);
+    }
+};
+
+
 class JobContext
 {
  public:
@@ -40,7 +47,7 @@ class JobContext
 
   pthread_mutex_t jobMutex;
   pthread_cond_t jobCond;
-  std::set<K2*> getUniqueKeySet();
+  std::set<K2*, K2Comparator> getUniqueKeySet();
   std::vector<IntermediateVec> getIntermediateVectors();
   std::vector<IntermediateVec> getShuffledVectors();
   sem_t* getShuffleSemaphore();
@@ -65,7 +72,7 @@ class JobContext
   JobState state;
   bool jobFinished;
   std::atomic<long unsigned int> atomic;
-  std::set<K2*> uniqueKeySet;
+  std::set<K2*, K2Comparator> uniqueKeySet;
   std::vector<std::vector<std::pair<K2*, V2*>>> intermediateVectors;
   std::vector<std::vector<std::pair<K2*, V2*>>> shuffledVectors;
   Barrier *barrier;

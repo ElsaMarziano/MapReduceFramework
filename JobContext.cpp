@@ -54,74 +54,81 @@ void *runThread (void *context)
   /**
    * Sorting
    */
-   if(!castContext->intermediateVector->empty())
-   {
+  if (!castContext->intermediateVector->empty ())
+  {
 //     Sorting the keys
-     std::sort (castContext->intermediateVector->begin (),
-                castContext->intermediateVector->end (),
-                [] (const IntermediatePair &a, const IntermediatePair &b)
-                {
-                    return *b.first < *a.first;
-                });
-     jobContext->insertToIntermediateVectors (*(castContext->intermediateVector));
+    std::sort (castContext->intermediateVector->begin (),
+               castContext->intermediateVector->end (),
+               [] (const IntermediatePair &a, const IntermediatePair &b)
+               {
+                   return *a.first < *b.first;
+               });
+    jobContext->insertToIntermediateVectors (*(castContext->intermediateVector));
 
-     for (size_t i = 0; i < castContext->intermediateVector->size(); i++)
-     {
-       // If it's the first element or the current key is different from the previous key
-       if (i == 0 || (*castContext->intermediateVector)[i].first !=
-                     (*castContext->intermediateVector)[i - 1].first)
-       {
-         jobContext->insertToUniqueKeySet ((*castContext->intermediateVector)[i].first);
-       }
-     }
-   }
+    for (size_t i = 0; i < castContext->intermediateVector->size (); i++)
+    {
+        jobContext->insertToUniqueKeySet ((*castContext->intermediateVector)[i].first);
+
+    }
+  }
   jobContext->getBarrier ()->barrier (); // Wait for everyone
 
   /**
    * ------------------------------- SHUFFLE PHASE -------------------------------
    */
-  printf("key vector : %ld\n", jobContext->getUniqueKeySet().size());
 
   if (castContext->threadId == 0)
   {
-    castContext->atomic.exchange(0);
+    castContext->atomic.exchange (0);
     jobContext->setJobState ({SHUFFLE_STAGE, 0});
-    for (auto key: jobContext->getUniqueKeySet ())
+    auto uniqueKeySet = jobContext->getUniqueKeySet ();
+
+    // Convert the set to a vector
+    std::vector < K2 *
+    > uniqueKeySetVector (uniqueKeySet.begin (), uniqueKeySet.end ());
+
+    // Sort the vector of pointers
+    std::sort (uniqueKeySetVector.begin (), uniqueKeySetVector.end (),
+               [] (const K2 *a, const K2 *b)
+               {
+                   return *b < *a;
+               });
+
+    for (const K2 *key: uniqueKeySetVector)
     {
       IntermediateVec key_vector;
       for (auto &vector: jobContext->getIntermediateVectors ())
       {
-        while (!vector.empty() && vector.back ().first == key)
+        while (!vector.empty () && vector.back ().first == key)
         {
           key_vector.push_back (vector.back ());
           vector.pop_back ();
           castContext->atomic.fetch_add (1);
-            float result = static_cast<float>(100.0f
-                                                * static_cast<float>(castContext->atomic.load ())
-                                                /
-                                                jobContext->getInputLength ());
+          float result = static_cast<float>(100.0f
+                                            * static_cast<float>(castContext->atomic.load ())
+                                            /
+                                            jobContext->getInputLength ());
           jobContext->setJobState ({SHUFFLE_STAGE, result});
-          // set state
         }
       }
       jobContext->insertToShuffledVectors (key_vector);
     }
-    printf("shuffle: %ld\n", jobContext->getShuffledVectors().size());
+    printf ("shuffle: %ld\n", jobContext->getShuffledVectors ().size ());
 
     jobContext->setJobState ({SHUFFLE_STAGE, 100.0f});
-    sem_post(jobContext->getShuffleSemaphore());  // Notify all threads that shuffle is done
-    castContext->atomic.exchange(0);
+    sem_post (jobContext->getShuffleSemaphore ());  // Notify all threads that shuffle is done
+    castContext->atomic.exchange (0);
   }
   else
   {
-    sem_wait(jobContext->getShuffleSemaphore());  // Wait until shuffle is done
+    sem_wait (jobContext->getShuffleSemaphore ());  // Wait until shuffle is done
   }
   /**
    * ------------------------------- REDUCE PHASE -------------------------------
    */
   old_value = castContext->atomic.fetch_add (1);
 
-  while (old_value < jobContext->getShuffledVectors ().size())
+  while (old_value < jobContext->getShuffledVectors ().size ())
   {
 //    If this is the first iteration, set the job state to 0 - we're
 //    entering reduce stage
@@ -129,8 +136,8 @@ void *runThread (void *context)
     {
       jobContext->setJobState ({REDUCE_STAGE, 0});
     }
-    printf("Thread %d is in REDUCE PHASE %d %ld\n", castContext->threadId,
-           old_value, jobContext->getShuffledVectors().size());
+//    printf("Thread %d is in REDUCE PHASE %d %ld\n", castContext->threadId,
+//           old_value, jobContext->getShuffledVectors().size());
 
 //    Reduce over the intermediate we got
     jobContext->getClient ().reduce
@@ -141,7 +148,7 @@ void *runThread (void *context)
     float result = static_cast<float>(100.0f
                                       * static_cast<float>(castContext->atomic.load ())
                                       /
-                                      jobContext->getShuffledVectors ().size());
+                                      jobContext->getShuffledVectors ().size ());
     if (castContext->atomic.load ()
         >= jobContext->getShuffledVectors ().size () - 1)
     {
@@ -169,7 +176,7 @@ JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
   pthread_cond_init (&jobCond, nullptr);
   inputLength = inputVec.size ();
   barrier = new Barrier (multiThreadLevel);
-  sem_init(&shuffleSemaphore, 0, 0);  // Initialize semaphore with value 0
+  sem_init (&shuffleSemaphore, 0, 0);  // Initialize semaphore with value 0
 
 //  TODO Save this in bits somehow
   for (int i = 0; i < multiThreadLevel; i++)
@@ -256,11 +263,12 @@ void JobContext::addThread (int id)
   threads.push_back (thread);
 }
 
-void JobContext::insertToShuffledVectors(IntermediateVec vectors) {
-    pthread_mutex_lock(&jobMutex);
-    shuffledVectors.push_back(vectors);
-    pthread_cond_broadcast(&jobCond);
-    pthread_mutex_unlock(&jobMutex);
+void JobContext::insertToShuffledVectors (IntermediateVec vectors)
+{
+  pthread_mutex_lock (&jobMutex);
+  shuffledVectors.push_back (vectors);
+  pthread_cond_broadcast (&jobCond);
+  pthread_mutex_unlock (&jobMutex);
 }
 
 InputVec JobContext::getInputVec ()
@@ -306,7 +314,7 @@ void JobContext::setJobState (JobState state)
   pthread_mutex_unlock (&jobMutex);
 }
 
-void JobContext::insertToUniqueKeySet (K2 * uniqueKey)
+void JobContext::insertToUniqueKeySet (K2 *uniqueKey)
 {
   pthread_mutex_lock (&jobMutex);
   uniqueKeySet.insert (uniqueKey);
@@ -314,7 +322,7 @@ void JobContext::insertToUniqueKeySet (K2 * uniqueKey)
   pthread_mutex_unlock (&jobMutex);
 }
 
-std::set<K2 *> JobContext::getUniqueKeySet ()
+std::set<K2 *, K2Comparator> JobContext::getUniqueKeySet ()
 {
   return uniqueKeySet;
 }
@@ -324,12 +332,13 @@ sem_t *JobContext::getShuffleSemaphore ()
   return &shuffleSemaphore;
 }
 
-void JobContext::insertToIntermediateVectors (IntermediateVec intermediateVector)
+void
+JobContext::insertToIntermediateVectors (IntermediateVec intermediateVector)
 {
-    pthread_mutex_lock(&jobMutex);
-    intermediateVectors.push_back(intermediateVector);
-    pthread_cond_broadcast(&jobCond);
-    pthread_mutex_unlock(&jobMutex);
+  pthread_mutex_lock (&jobMutex);
+  intermediateVectors.push_back (intermediateVector);
+  pthread_cond_broadcast (&jobCond);
+  pthread_mutex_unlock (&jobMutex);
 }
 
 
