@@ -54,6 +54,8 @@ class JobContext
     void insertToShuffledVectors(IntermediateVec     vectors);
     void insertToUniqueKeySet(K2* unique_key);
     void insertToIntermediateVectors(IntermediateVec intermediate_vector);
+    void insertToOutputVec(K3* key, V3* value);
+    void setJobFinished();
 
 
 

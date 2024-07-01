@@ -67,7 +67,7 @@ void *runThread (void *context)
 
     for (size_t i = 0; i < castContext->intermediateVector->size (); i++)
     {
-        jobContext->insertToUniqueKeySet ((*castContext->intermediateVector)[i].first);
+      jobContext->insertToUniqueKeySet ((*castContext->intermediateVector)[i].first);
 
     }
   }
@@ -93,14 +93,16 @@ void *runThread (void *context)
                {
                    return *b < *a;
                });
-
-    for (const K2 *key: uniqueKeySetVector)
+    auto intermediateVectors = jobContext->getIntermediateVectors ();
+    for (K2 *key: uniqueKeySetVector)
     {
       IntermediateVec key_vector;
-      for (auto vector: jobContext->getIntermediateVectors ())
+      for (auto &vector: intermediateVectors)  // Note the use of '&' here
       {
-        while (!vector.empty () && !(vector.back ().first < key || key <
-        vector.back ().first))
+        std::cout << vector.back ().first << std::endl;
+        while (!vector.empty () && !(*(vector.back ().first) < *key || *key <
+                                                                       *(vector
+                                                                           .back ().first)))
         {
           key_vector.push_back (vector.back ());
           vector.pop_back ();
@@ -114,7 +116,6 @@ void *runThread (void *context)
       }
       jobContext->insertToShuffledVectors (key_vector);
     }
-    printf ("shuffle: %ld\n", jobContext->getShuffledVectors ().size ());
 
     jobContext->setJobState ({SHUFFLE_STAGE, 100.0f});
     sem_post (jobContext->getShuffleSemaphore ());  // Notify all threads that shuffle is done
@@ -145,7 +146,6 @@ void *runThread (void *context)
         (&(jobContext->getShuffledVectors ()[old_value]),
          context);
 //    Update state
-//TODO Percentage is not good
     float result = static_cast<float>(100.0f
                                       * static_cast<float>(castContext->atomic.load ())
                                       /
@@ -154,6 +154,7 @@ void *runThread (void *context)
         >= jobContext->getShuffledVectors ().size () - 1)
     {
       jobContext->setJobState ({REDUCE_STAGE, 100.0f});
+      jobContext->setJobFinished();
       break;
     }
     else if (old_value < jobContext->getShuffledVectors ().size () - 1)
@@ -223,18 +224,26 @@ JobContext::~JobContext ()
 
 void JobContext::waitForJob ()
 {
-  pthread_mutex_lock (&jobMutex);
+  pthread_mutex_lock(&jobMutex);
   while (!jobFinished)
   {
-    pthread_cond_wait (&jobCond, &jobMutex);
+    pthread_cond_wait(&jobCond, &jobMutex);
   }
-  pthread_mutex_unlock (&jobMutex);
+  pthread_mutex_unlock(&jobMutex);
 
-  for (pthread_t thread: threads)
+  for (size_t i = 0; i < threads.size(); ++i)
   {
-    pthread_join (thread, nullptr);
+    pthread_t thread = threads[i];
+    int joinResult = pthread_join(thread, nullptr);
+    if (joinResult != 0) {
+      // Handle the error, if any, from pthread_join
+      jobSystemError ("Failed to join thread");
+    } else {
+      std::cout << "Successfully joined thread " << i << std::endl;
+    }
   }
 }
+
 
 JobState JobContext::getJobState ()
 {
@@ -342,6 +351,20 @@ JobContext::insertToIntermediateVectors (IntermediateVec intermediateVector)
   pthread_mutex_unlock (&jobMutex);
 }
 
+void JobContext::insertToOutputVec (K3 *key, V3 *value)
+{
+  pthread_mutex_lock (&jobMutex);
+  outputVec.push_back (std::make_pair (key, value));
+  pthread_cond_broadcast (&jobCond);
+  pthread_mutex_unlock (&jobMutex);
+}
 
+void JobContext::setJobFinished ()
+{
+  pthread_mutex_lock (&jobMutex);
+  jobFinished = true;
+  pthread_cond_broadcast (&jobCond);
+  pthread_mutex_unlock (&jobMutex);
+}
 
 
