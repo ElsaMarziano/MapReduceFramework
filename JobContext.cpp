@@ -99,7 +99,8 @@ void *runThread (void *context)
       IntermediateVec key_vector;
       for (auto &vector: jobContext->getIntermediateVectors ())
       {
-        while (!vector.empty () && vector.back ().first == key)
+        while (!vector.empty () && !(vector.back ().first < key || key <
+        vector.back ().first))
         {
           key_vector.push_back (vector.back ());
           vector.pop_back ();
