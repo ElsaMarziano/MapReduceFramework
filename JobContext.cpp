@@ -99,16 +99,14 @@ void *runThread (void *context)
       IntermediateVec key_vector;
       for (auto vector: jobContext->getIntermediateVectors ())
       {
-        while (!vector.empty () && !(vector.back ().first < key || key <
-        vector.back ().first))
+        while (!vector.empty () && vector.back ().first == key)
         {
           key_vector.push_back (vector.back ());
           vector.pop_back ();
           castContext->atomic.fetch_add (1);
           float result = static_cast<float>(100.0f
                                             * static_cast<float>(castContext->atomic.load ())
-                                            /
-                                            jobContext->getInputLength ());
+                                            /jobContext->getInputLength ());
           jobContext->setJobState ({SHUFFLE_STAGE, result});
         }
       }
