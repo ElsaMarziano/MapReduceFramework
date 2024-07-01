@@ -1,24 +1,33 @@
-cmake_minimum_required(VERSION 3.10)
+CC=g++
+CXX=g++
+RANLIB=ranlib
 
-# Set the project name
-project(MapReduceFramework)
+LIBSRC=MapReduceFramework.cpp JobContext.cpp JobContext.h Barrier.cpp Barrier.h Makefile
+LIBOBJ=$(LIBSRC:.cpp=.o)
 
-# Specify the C++ standard
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+INCS=-I.
+CFLAGS = -Wall -std=c++11 -g $(INCS)
+CXXFLAGS = -Wall -std=c++11 -g $(INCS)
 
-# Add the executable
-add_executable(sampleclient
-    MapReduceFramework.cpp
-    JobContext.cpp
-    SampleClient.cpp
-    Barrier.cpp
-)
+MAPREDUCELIB = libMapReduceFramework.a
+TARGETS = $(MAPREDUCELIB)
 
-# Add the header files
-target_include_directories(sampleclient PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
-)
+TAR=tar
+TARFLAGS=-cvf
+TARNAME=ex3.tar
+TARSRCS=$(LIBSRC) Makefile README
 
-# Link pthread library
-target_link_libraries(sampleclient pthread)
+all: $(TARGETS)
+
+$(TARGETS): $(LIBOBJ)
+	$(AR) $(ARFLAGS) $@ $^
+	$(RANLIB) $@
+
+clean:
+	$(RM) $(TARGETS) $(OSMLIB) $(OBJ) $(LIBOBJ) *~ *core
+
+depend:
+	makedepend -- $(CFLAGS) -- $(SRC) $(LIBSRC)
+
+tar:
+	$(TAR) $(TARFLAGS) $(TARNAME) $(TARSRCS)

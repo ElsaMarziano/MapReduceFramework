@@ -1,0 +1,16 @@
+e342791191, archsak
+Elsa Sebagh (342791191), Aharon Saksonov (207600164)
+EX: 3
+
+FILES:
+MapReduceFramework.cpp
+JobContext.cpp
+JobContext.h
+Barrier.cpp
+Barrier.h
+Makefile
+
+
+REMARKS:
+
+

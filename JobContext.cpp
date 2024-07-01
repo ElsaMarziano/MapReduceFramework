@@ -99,7 +99,6 @@ void *runThread (void *context)
       IntermediateVec key_vector;
       for (auto &vector: intermediateVectors)  // Note the use of '&' here
       {
-        std::cout << vector.back ().first << std::endl;
         while (!vector.empty () && !(*(vector.back ().first) < *key || *key <
                                                                        *(vector
                                                                            .back ().first)))
@@ -118,7 +117,9 @@ void *runThread (void *context)
     }
 
     jobContext->setJobState ({SHUFFLE_STAGE, 100.0f});
-    sem_post (jobContext->getShuffleSemaphore ());  // Notify all threads that shuffle is done
+    for (int i = 1; i < jobContext->getMultiThreadLevel(); ++i) {
+      sem_post(jobContext->getShuffleSemaphore());
+    }
     castContext->atomic.exchange (0);
   }
   else
@@ -138,9 +139,6 @@ void *runThread (void *context)
     {
       jobContext->setJobState ({REDUCE_STAGE, 0});
     }
-//    printf("Thread %d is in REDUCE PHASE %d %ld\n", castContext->threadId,
-//           old_value, jobContext->getShuffledVectors().size());
-
 //    Reduce over the intermediate we got
     jobContext->getClient ().reduce
         (&(jobContext->getShuffledVectors ()[old_value]),
@@ -162,15 +160,13 @@ void *runThread (void *context)
       old_value = castContext->atomic.fetch_add (1);
       jobContext->setJobState ({REDUCE_STAGE, result});
     }
-
   }
-
   return nullptr;
 }
 
 JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
                         OutputVec &outputVec, int multiThreadLevel)
-    : client (client), inputVec (inputVec), outputVec (outputVec),
+    : client (client) ,inputVec (inputVec), outputVec (outputVec), isWaitingForJob(false),
       multiThreadLevel (multiThreadLevel), state ({UNDEFINED_STAGE, 0}),
       jobFinished (false), atomic (0)
 {
@@ -224,24 +220,19 @@ JobContext::~JobContext ()
 
 void JobContext::waitForJob ()
 {
-  pthread_mutex_lock(&jobMutex);
+//  if(isWaitingForJob) return;
   while (!jobFinished)
   {
     pthread_cond_wait(&jobCond, &jobMutex);
   }
-  pthread_mutex_unlock(&jobMutex);
 
-  for (size_t i = 0; i < threads.size(); ++i)
-  {
-    pthread_t thread = threads[i];
-    int joinResult = pthread_join(thread, nullptr);
-    if (joinResult != 0) {
-      // Handle the error, if any, from pthread_join
-      jobSystemError ("Failed to join thread");
-    } else {
-      std::cout << "Successfully joined thread " << i << std::endl;
+  for(int i = 0; i < multiThreadLevel; i++){
+    if(pthread_join(threads[i], nullptr) != 0){
+      jobSystemError ("Error joining thread");
     }
   }
+  isWaitingForJob = true;
+
 }
 
 
@@ -367,4 +358,7 @@ void JobContext::setJobFinished ()
   pthread_mutex_unlock (&jobMutex);
 }
 
-
+int JobContext::getMultiThreadLevel ()
+{
+  return multiThreadLevel;
+}
