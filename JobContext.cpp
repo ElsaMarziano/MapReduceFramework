@@ -97,7 +97,7 @@ void *runThread (void *context)
     for (const K2 *key: uniqueKeySetVector)
     {
       IntermediateVec key_vector;
-      for (auto &vector: jobContext->getIntermediateVectors ())
+      for (auto vector: jobContext->getIntermediateVectors ())
       {
         while (!vector.empty () && !(vector.back ().first < key || key <
         vector.back ().first))
