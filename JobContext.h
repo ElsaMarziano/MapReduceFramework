@@ -47,23 +47,26 @@ class JobContext
 
   pthread_mutex_t jobMutex;
   pthread_cond_t jobCond;
-  std::set<K2*, K2Comparator> getUniqueKeySet();
-  std::vector<IntermediateVec> getIntermediateVectors();
-  std::vector<IntermediateVec> getShuffledVectors();
+  std::set<K2*, K2Comparator>& getUniqueKeySet();
+  std::vector<IntermediateVec>& getIntermediateVectors();
+  std::vector<IntermediateVec>& getShuffledVectors();
   sem_t* getShuffleSemaphore();
     void insertToShuffledVectors(IntermediateVec     vectors);
     void insertToUniqueKeySet(K2* unique_key);
     void insertToIntermediateVectors(IntermediateVec intermediate_vector);
+    void insertToOutputVec(K3* key, V3* value);
+    void setJobFinished();
+    int getMultiThreadLevel();
 
 
 
 
  private:
   void setJobState (stage_t stage, float percentage, bool finished = false);
-
   const MapReduceClient &client;
   const InputVec &inputVec;
   OutputVec &outputVec;
+  bool isWaitingForJob;
   int multiThreadLevel;
   long unsigned int inputLength;
   std::vector <pthread_t> threads;

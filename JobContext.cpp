@@ -67,7 +67,7 @@ void *runThread (void *context)
 
     for (size_t i = 0; i < castContext->intermediateVector->size (); i++)
     {
-        jobContext->insertToUniqueKeySet ((*castContext->intermediateVector)[i].first);
+      jobContext->insertToUniqueKeySet ((*castContext->intermediateVector)[i].first);
 
     }
   }
@@ -93,13 +93,16 @@ void *runThread (void *context)
                {
                    return *b < *a;
                });
-
-    for (const K2 *key: uniqueKeySetVector)
+    auto intermediateVectors = jobContext->getIntermediateVectors ();
+    for (K2 *key: uniqueKeySetVector)
     {
       IntermediateVec key_vector;
-      for (auto vector: jobContext->getIntermediateVectors ())
+      for (auto &vector: intermediateVectors)  // Note the use of '&' here
       {
         while (!vector.empty () && vector.back ().first == key)
+        while (!vector.empty () && !(*(vector.back ().first) < *key || *key <
+                                                                       *(vector
+                                                                           .back ().first)))
         {
           key_vector.push_back (vector.back ());
           vector.pop_back ();
@@ -112,10 +115,11 @@ void *runThread (void *context)
       }
       jobContext->insertToShuffledVectors (key_vector);
     }
-    printf ("shuffle: %ld\n", jobContext->getShuffledVectors ().size ());
 
     jobContext->setJobState ({SHUFFLE_STAGE, 100.0f});
-    sem_post (jobContext->getShuffleSemaphore ());  // Notify all threads that shuffle is done
+    for (int i = 1; i < jobContext->getMultiThreadLevel(); ++i) {
+      sem_post(jobContext->getShuffleSemaphore());
+    }
     castContext->atomic.exchange (0);
   }
   else
@@ -125,9 +129,10 @@ void *runThread (void *context)
   /**
    * ------------------------------- REDUCE PHASE -------------------------------
    */
-  old_value = castContext->atomic.fetch_add (1);
+   long unsigned int size = jobContext->getShuffledVectors ().size ();
+    old_value = castContext->atomic.fetch_add (1);
 
-  while (old_value < jobContext->getShuffledVectors ().size ())
+    while (old_value < size)
   {
 //    If this is the first iteration, set the job state to 0 - we're
 //    entering reduce stage
@@ -135,39 +140,44 @@ void *runThread (void *context)
     {
       jobContext->setJobState ({REDUCE_STAGE, 0});
     }
-//    printf("Thread %d is in REDUCE PHASE %d %ld\n", castContext->threadId,
-//           old_value, jobContext->getShuffledVectors().size());
-
 //    Reduce over the intermediate we got
-    jobContext->getClient ().reduce
-        (&(jobContext->getShuffledVectors ()[old_value]),
-         context);
+        auto &shuffledVectors = jobContext->getShuffledVectors();
+
+        if (!shuffledVectors.empty()) {
+            auto &shuffledVector = shuffledVectors.back();
+            if (!shuffledVector.empty()) {
+                jobContext->getClient().reduce(&shuffledVector, context);
+                shuffledVector.clear();
+                shuffledVectors.pop_back();
+            } else {
+                old_value = castContext->atomic.fetch_add(1);
+                continue;
+            }
+        } else {
+            break;
+        }
 //    Update state
-//TODO Percentage is not good
     float result = static_cast<float>(100.0f
                                       * static_cast<float>(castContext->atomic.load ())
-                                      /
-                                      jobContext->getShuffledVectors ().size ());
-    if (castContext->atomic.load ()
-        >= jobContext->getShuffledVectors ().size () - 1)
+                                      /size);
+    if (castContext->atomic.load () >= size - 1)
     {
       jobContext->setJobState ({REDUCE_STAGE, 100.0f});
+      jobContext->setJobFinished();
       break;
     }
-    else if (old_value < jobContext->getShuffledVectors ().size () - 1)
+    else if (old_value < size - 1)
     {
       old_value = castContext->atomic.fetch_add (1);
       jobContext->setJobState ({REDUCE_STAGE, result});
     }
-
   }
-
   return nullptr;
 }
 
 JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
                         OutputVec &outputVec, int multiThreadLevel)
-    : client (client), inputVec (inputVec), outputVec (outputVec),
+    : client (client) ,inputVec (inputVec), outputVec (outputVec), isWaitingForJob(false),
       multiThreadLevel (multiThreadLevel), state ({UNDEFINED_STAGE, 0}),
       jobFinished (false), atomic (0)
 {
@@ -221,18 +231,21 @@ JobContext::~JobContext ()
 
 void JobContext::waitForJob ()
 {
-  pthread_mutex_lock (&jobMutex);
+//  if(isWaitingForJob) return;
   while (!jobFinished)
   {
-    pthread_cond_wait (&jobCond, &jobMutex);
+    pthread_cond_wait(&jobCond, &jobMutex);
   }
-  pthread_mutex_unlock (&jobMutex);
 
-  for (pthread_t thread: threads)
-  {
-    pthread_join (thread, nullptr);
+  for(int i = 0; i < multiThreadLevel; i++){
+    if(pthread_join(threads[i], nullptr) != 0){
+      jobSystemError ("Error joining thread");
+    }
   }
+  isWaitingForJob = true;
+
 }
+
 
 JobState JobContext::getJobState ()
 {
@@ -295,12 +308,12 @@ Barrier *JobContext::getBarrier ()
   return barrier;
 }
 
-std::vector <IntermediateVec> JobContext::getShuffledVectors ()
+std::vector <IntermediateVec>& JobContext::getShuffledVectors ()
 {
-  return shuffledVectors;
+    return shuffledVectors;
 }
 
-std::vector <IntermediateVec> JobContext::getIntermediateVectors ()
+std::vector <IntermediateVec>& JobContext::getIntermediateVectors ()
 {
   return intermediateVectors;
 }
@@ -321,7 +334,7 @@ void JobContext::insertToUniqueKeySet (K2 *uniqueKey)
   pthread_mutex_unlock (&jobMutex);
 }
 
-std::set<K2 *, K2Comparator> JobContext::getUniqueKeySet ()
+std::set<K2 *, K2Comparator>& JobContext::getUniqueKeySet ()
 {
   return uniqueKeySet;
 }
@@ -340,6 +353,23 @@ JobContext::insertToIntermediateVectors (IntermediateVec intermediateVector)
   pthread_mutex_unlock (&jobMutex);
 }
 
+void JobContext::insertToOutputVec (K3 *key, V3 *value)
+{
+  pthread_mutex_lock (&jobMutex);
+  outputVec.push_back (std::make_pair (key, value));
+  pthread_cond_broadcast (&jobCond);
+  pthread_mutex_unlock (&jobMutex);
+}
 
+void JobContext::setJobFinished ()
+{
+  pthread_mutex_lock (&jobMutex);
+  jobFinished = true;
+  pthread_cond_broadcast (&jobCond);
+  pthread_mutex_unlock (&jobMutex);
+}
 
-
+int JobContext::getMultiThreadLevel ()
+{
+  return multiThreadLevel;
+}
