@@ -126,54 +126,91 @@ void *runThread (void *context)
   {
     sem_wait (jobContext->getShuffleSemaphore ());  // Wait until shuffle is done
   }
-  /**
+/**
    * ------------------------------- REDUCE PHASE -------------------------------
    */
-   long unsigned int size = jobContext->getShuffledVectors ().size ();
     old_value = castContext->atomic.fetch_add (1);
 
-    while (old_value < size)
-  {
+    while (old_value < jobContext->getShuffledVectors ().size ())
+    {
 //    If this is the first iteration, set the job state to 0 - we're
 //    entering reduce stage
-    if (old_value == 0)
-    {
-      jobContext->setJobState ({REDUCE_STAGE, 0});
-    }
+        if (old_value == 0)
+        {
+            jobContext->setJobState ({REDUCE_STAGE, 0});
+        }
 //    Reduce over the intermediate we got
-        auto &shuffledVectors = jobContext->getShuffledVectors();
-
-        if (!shuffledVectors.empty()) {
-            auto &shuffledVector = shuffledVectors.back();
-            if (!shuffledVector.empty()) {
-                jobContext->getClient().reduce(&shuffledVector, context);
-                shuffledVector.clear();
-                shuffledVectors.pop_back();
-            } else {
-                old_value = castContext->atomic.fetch_add(1);
-                continue;
-            }
-        } else {
+        jobContext->getClient ().reduce
+                (&(jobContext->getShuffledVectors ()[old_value]),
+                 context);
+//    Update state
+        float result = static_cast<float>(100.0f
+                                          * static_cast<float>(castContext->atomic.load ())
+                                          /
+                                          jobContext->getShuffledVectors ().size ());
+        if (castContext->atomic.load ()
+            >= jobContext->getShuffledVectors ().size () - 1)
+        {
+            jobContext->setJobState ({REDUCE_STAGE, 100.0f});
+            jobContext->setJobFinished();
             break;
         }
-//    Update state
-    float result = static_cast<float>(100.0f
-                                      * static_cast<float>(castContext->atomic.load ())
-                                      /size);
-    if (castContext->atomic.load () >= size - 1)
-    {
-      jobContext->setJobState ({REDUCE_STAGE, 100.0f});
-      jobContext->setJobFinished();
-      break;
+        else if (old_value < jobContext->getShuffledVectors ().size () - 1)
+        {
+            old_value = castContext->atomic.fetch_add (1);
+            jobContext->setJobState ({REDUCE_STAGE, result});
+        }
     }
-    else if (old_value < size - 1)
-    {
-      old_value = castContext->atomic.fetch_add (1);
-      jobContext->setJobState ({REDUCE_STAGE, result});
-    }
-  }
-  return nullptr;
+    return nullptr;
 }
+//  /**
+//   * ------------------------------- REDUCE PHASE -------------------------------
+//   */
+//   long unsigned int size = jobContext->getShuffledVectors ().size ();
+//    old_value = castContext->atomic.fetch_add (1);
+//
+//    while (old_value < size)
+//  {
+////    If this is the first iteration, set the job state to 0 - we're
+////    entering reduce stage
+//    if (old_value == 0)
+//    {
+//      jobContext->setJobState ({REDUCE_STAGE, 0});
+//    }
+////    Reduce over the intermediate we got
+//        auto &shuffledVectors = jobContext->getShuffledVectors();
+//
+//        if (!shuffledVectors.empty()) {
+//            auto &shuffledVector = shuffledVectors.back();
+//            if (!shuffledVector.empty()) {
+//                jobContext->getClient().reduce(&shuffledVector, context);
+//                shuffledVector.clear();
+//                shuffledVectors.pop_back();
+//            } else {
+//                old_value = castContext->atomic.fetch_add(1);
+//                continue;
+//            }
+//        } else {
+//            break;
+//        }
+////    Update state
+//    float result = static_cast<float>(100.0f
+//                                      * static_cast<float>(castContext->atomic.load ())
+//                                      /size);
+//    if (castContext->atomic.load () >= size - 1)
+//    {
+//      jobContext->setJobState ({REDUCE_STAGE, 100.0f});
+//      jobContext->setJobFinished();
+//      break;
+//    }
+//    else if (old_value < size - 1)
+//    {
+//      old_value = castContext->atomic.fetch_add (1);
+//      jobContext->setJobState ({REDUCE_STAGE, result});
+//    }
+//  }
+//  return nullptr;
+//}
 
 JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
                         OutputVec &outputVec, int multiThreadLevel)
@@ -212,6 +249,18 @@ JobContext::~JobContext ()
   pthread_cond_destroy (&jobCond);
   sem_destroy (&shuffleSemaphore);
   delete barrier;
+    // Clear intermediate vectors
+    for (auto &vec : intermediateVectors) {
+        vec.clear();
+    }
+
+    // Clear unique key set
+    uniqueKeySet.clear();
+
+    // Clear shuffled vectors
+    for (auto &vec : shuffledVectors) {
+        vec.clear();
+    }
 }
 //void JobContext::operator= (const JobContext &other)
 //{

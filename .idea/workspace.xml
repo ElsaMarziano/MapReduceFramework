@@ -13,63 +13,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d88f83df-1722-41f7-b758-04303bdcfea7" name="Changes" comment="combination">
-      <change afterPath="$PROJECT_DIR$/README" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeCache.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CMakeCCompiler.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CMakeCXXCompiler.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CMakeDetermineCompilerABI_CXX.bin" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CMakeSystem.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CompilerIdC/CMakeCCompilerId.c" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CompilerIdC/a.out" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CompilerIdCXX/CMakeCXXCompilerId.cpp" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/CMakeOutput.log" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/cmake.check_cache" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeCache.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/3.22.1/CMakeSystem.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/CMakeDirectoryInformation.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/CMakeOutput.log" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/CMakeRuleHashes.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/Makefile.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/Makefile2" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/Progress/4" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/Progress/count.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/TargetDirectories.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/cmake.check_cache" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/DependInfo.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/Labels.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/Labels.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/build.make" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/cmake_clean.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/compiler_depend.make" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/compiler_depend.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/googletest.dir/progress.make" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeFiles/progress.marks" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/CMakeLists.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/Makefile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/cmake_install.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/googletest-prefix/src/googletest-stamp/googletest-gitinfo.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/googletest-prefix/src/googletest-stamp/googletest-mkdir" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/googletest-prefix/tmp/googletest-cfgcmd.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/googletest-prefix/tmp/googletest-cfgcmd.txt.in" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/googletest-prefix/tmp/googletest-gitclone.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/cmake-build-debug/mattanTests/googletest-download/googletest-prefix/tmp/googletest-gitupdate.cmake" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/ex3.tar" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/submission.pdf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test1" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test1-1_thread_1_process" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/test4" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/JobContext.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/JobContext.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/JobContext.h" beforeDir="false" afterPath="$PROJECT_DIR$/JobContext.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/MapReduceFramework.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/MapReduceFramework.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/SampleClient.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/SampleClient.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test.zip" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test~1/test1-1_thread_1_process.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/test1-1_thread_1_process.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test~1/test4-1_thread_4_process.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/test4-1_thread_4_process.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/atomicdemo" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CompilerIdCXX/a.out" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/atomicdemomulti" beforeDir="false" afterPath="$PROJECT_DIR$/cmake-build-debug/CMakeFiles/3.22.1/CMakeDetermineCompilerABI_C.bin" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/makefile" beforeDir="false" afterPath="$PROJECT_DIR$/makefile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/sampleclient" beforeDir="false" afterPath="$PROJECT_DIR$/sampleclient" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/test" beforeDir="false" afterPath="$PROJECT_DIR$/test" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -126,6 +73,8 @@
       <updated>1718969165273</updated>
       <workItem from="1718969166778" duration="28034000" />
       <workItem from="1719828533215" duration="14548000" />
+      <workItem from="1720007279148" duration="1768000" />
+      <workItem from="1720334154239" duration="10000" />
     </task>
     <task id="LOCAL-00001" summary="JobContext creation">
       <created>1718972260388</created>
