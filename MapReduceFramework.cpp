@@ -44,7 +44,7 @@ JobHandle startMapReduceJob (const MapReduceClient &client,
 {
   JobContext *job = new JobContext (client, inputVec, outputVec,
                                     multiThreadLevel);
-  JobHandle jobHandle = new JobHandle ();
+  JobHandle *jobHandle = new JobHandle();
   jobs[jobHandle] = job;
   return jobHandle;
 }
@@ -76,8 +76,12 @@ void closeJobHandle(JobHandle job)
     systemError("Job not found");
   }
   waitForJob(job);
+  auto newJob = static_cast<JobHandle*>(job);
+  delete newJob;
   delete it->second;
+
   jobs.erase(it);
+
 }
 
 

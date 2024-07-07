@@ -156,8 +156,8 @@ void *runThread (void *context)
     }
 //    Update state
     float result = static_cast<float>(100.0f
-                                      * static_cast<float>(castContext->atomic.load ())
-                                      / size);
+                                      * (size - shuffledVectors.size())/size
+                                      );
     if (shuffledVectors.empty())
     {
       jobContext->setJobState ({REDUCE_STAGE, 100.0f});
@@ -201,6 +201,7 @@ JobContext::~JobContext ()
     context->intermediateVector->clear ();
     delete context;
   }
+
   for (auto it = threads.begin (); it != threads.end ();)
   {
     pthread_cancel (*it);  // Cancel the thread
@@ -225,6 +226,7 @@ JobContext::~JobContext ()
   {
     vec.clear ();
   }
+//  delete jobContext;
 }
 //void JobContext::operator= (const JobContext &other)
 //{
