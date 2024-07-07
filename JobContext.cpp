@@ -39,7 +39,7 @@ void *runThread (void *context)
                                       /
                                       jobContext->getInputLength ());
     if (castContext->atomic.load ()
-        >= jobContext->getInputLength () - 1)
+        >= jobContext->getInputLength () )
     {
       jobContext->setJobState ({MAP_STAGE, 100.0f});
       break;
@@ -97,9 +97,8 @@ void *runThread (void *context)
     for (K2 *key: uniqueKeySetVector)
     {
       IntermediateVec key_vector;
-      for (auto &vector: intermediateVectors)  // Note the use of '&' here
+      for (auto &vector: intermediateVectors)
       {
-        while (!vector.empty () && vector.back ().first == key)
         while (!vector.empty () && !(*(vector.back ().first) < *key || *key <
                                                                        *(vector
                                                                            .back ().first)))
@@ -109,7 +108,7 @@ void *runThread (void *context)
           castContext->atomic.fetch_add (1);
           float result = static_cast<float>(100.0f
                                             * static_cast<float>(castContext->atomic.load ())
-                                            /jobContext->getInputLength ());
+                                            / jobContext->getInputLength ());
           jobContext->setJobState ({SHUFFLE_STAGE, result});
         }
       }
@@ -117,8 +116,9 @@ void *runThread (void *context)
     }
 
     jobContext->setJobState ({SHUFFLE_STAGE, 100.0f});
-    for (int i = 1; i < jobContext->getMultiThreadLevel(); ++i) {
-      sem_post(jobContext->getShuffleSemaphore());
+    for (int i = 1; i < jobContext->getMultiThreadLevel (); ++i)
+    {
+      sem_post (jobContext->getShuffleSemaphore ());
     }
     castContext->atomic.exchange (0);
   }
@@ -129,92 +129,54 @@ void *runThread (void *context)
 /**
    * ------------------------------- REDUCE PHASE -------------------------------
    */
-    old_value = castContext->atomic.fetch_add (1);
 
-    while (old_value < jobContext->getShuffledVectors ().size ())
-    {
+  long unsigned int size = jobContext->getShuffledVectors ().size ();
+  old_value = castContext->atomic.fetch_add (1);
+
+  while (!jobContext->getShuffledVectors ().empty ())
+  {
 //    If this is the first iteration, set the job state to 0 - we're
 //    entering reduce stage
-        if (old_value == 0)
-        {
-            jobContext->setJobState ({REDUCE_STAGE, 0});
-        }
-//    Reduce over the intermediate we got
-        jobContext->getClient ().reduce
-                (&(jobContext->getShuffledVectors ()[old_value]),
-                 context);
-//    Update state
-        float result = static_cast<float>(100.0f
-                                          * static_cast<float>(castContext->atomic.load ())
-                                          /
-                                          jobContext->getShuffledVectors ().size ());
-        if (castContext->atomic.load ()
-            >= jobContext->getShuffledVectors ().size () - 1)
-        {
-            jobContext->setJobState ({REDUCE_STAGE, 100.0f});
-            jobContext->setJobFinished();
-            break;
-        }
-        else if (old_value < jobContext->getShuffledVectors ().size () - 1)
-        {
-            old_value = castContext->atomic.fetch_add (1);
-            jobContext->setJobState ({REDUCE_STAGE, result});
-        }
+    if (old_value == 0)
+    {
+      jobContext->setJobState ({REDUCE_STAGE, 0});
     }
-    return nullptr;
+//    Reduce over the intermediate we got
+    pthread_mutex_lock (&jobContext->jobMutex);
+    auto &shuffledVectors = jobContext->getShuffledVectors ();
+    auto shuffledVector = std::move(jobContext->getShuffledVectors().back());
+    shuffledVectors.pop_back ();
+    pthread_cond_broadcast (&jobContext->jobCond);
+    pthread_mutex_unlock (&jobContext->jobMutex);
+
+    if(shuffledVector.size() > 0)
+    {
+      jobContext->getClient ().reduce
+          (&shuffledVector, context);
+    }
+//    Update state
+    float result = static_cast<float>(100.0f
+                                      * static_cast<float>(castContext->atomic.load ())
+                                      / size);
+    if (shuffledVectors.empty())
+    {
+      jobContext->setJobState ({REDUCE_STAGE, 100.0f});
+      jobContext->setJobFinished ();
+      break;
+    }
+    else if (old_value < size - 1)
+    {
+      old_value = castContext->atomic.fetch_add (1);
+      jobContext->setJobState ({REDUCE_STAGE, result});
+    }
+  }
+
+  return nullptr;
 }
-//  /**
-//   * ------------------------------- REDUCE PHASE -------------------------------
-//   */
-//   long unsigned int size = jobContext->getShuffledVectors ().size ();
-//    old_value = castContext->atomic.fetch_add (1);
-//
-//    while (old_value < size)
-//  {
-////    If this is the first iteration, set the job state to 0 - we're
-////    entering reduce stage
-//    if (old_value == 0)
-//    {
-//      jobContext->setJobState ({REDUCE_STAGE, 0});
-//    }
-////    Reduce over the intermediate we got
-//        auto &shuffledVectors = jobContext->getShuffledVectors();
-//
-//        if (!shuffledVectors.empty()) {
-//            auto &shuffledVector = shuffledVectors.back();
-//            if (!shuffledVector.empty()) {
-//                jobContext->getClient().reduce(&shuffledVector, context);
-//                shuffledVector.clear();
-//                shuffledVectors.pop_back();
-//            } else {
-//                old_value = castContext->atomic.fetch_add(1);
-//                continue;
-//            }
-//        } else {
-//            break;
-//        }
-////    Update state
-//    float result = static_cast<float>(100.0f
-//                                      * static_cast<float>(castContext->atomic.load ())
-//                                      /size);
-//    if (castContext->atomic.load () >= size - 1)
-//    {
-//      jobContext->setJobState ({REDUCE_STAGE, 100.0f});
-//      jobContext->setJobFinished();
-//      break;
-//    }
-//    else if (old_value < size - 1)
-//    {
-//      old_value = castContext->atomic.fetch_add (1);
-//      jobContext->setJobState ({REDUCE_STAGE, result});
-//    }
-//  }
-//  return nullptr;
-//}
 
 JobContext::JobContext (const MapReduceClient &client, const InputVec &inputVec,
                         OutputVec &outputVec, int multiThreadLevel)
-    : client (client) ,inputVec (inputVec), outputVec (outputVec), isWaitingForJob(false),
+    : client (client), inputVec (inputVec), outputVec (outputVec), isWaitingForJob (false),
       multiThreadLevel (multiThreadLevel), state ({UNDEFINED_STAGE, 0}),
       jobFinished (false), atomic (0)
 {
@@ -249,18 +211,20 @@ JobContext::~JobContext ()
   pthread_cond_destroy (&jobCond);
   sem_destroy (&shuffleSemaphore);
   delete barrier;
-    // Clear intermediate vectors
-    for (auto &vec : intermediateVectors) {
-        vec.clear();
-    }
+  // Clear intermediate vectors
+  for (auto &vec: intermediateVectors)
+  {
+    vec.clear ();
+  }
 
-    // Clear unique key set
-    uniqueKeySet.clear();
+  // Clear unique key set
+  uniqueKeySet.clear ();
 
-    // Clear shuffled vectors
-    for (auto &vec : shuffledVectors) {
-        vec.clear();
-    }
+  // Clear shuffled vectors
+  for (auto &vec: shuffledVectors)
+  {
+    vec.clear ();
+  }
 }
 //void JobContext::operator= (const JobContext &other)
 //{
@@ -283,18 +247,19 @@ void JobContext::waitForJob ()
 //  if(isWaitingForJob) return;
   while (!jobFinished)
   {
-    pthread_cond_wait(&jobCond, &jobMutex);
+    pthread_cond_wait (&jobCond, &jobMutex);
   }
 
-  for(int i = 0; i < multiThreadLevel; i++){
-    if(pthread_join(threads[i], nullptr) != 0){
+  for (int i = 0; i < multiThreadLevel; i++)
+  {
+    if (pthread_join (threads[i], nullptr) != 0)
+    {
       jobSystemError ("Error joining thread");
     }
   }
   isWaitingForJob = true;
 
 }
-
 
 JobState JobContext::getJobState ()
 {
@@ -357,15 +322,17 @@ Barrier *JobContext::getBarrier ()
   return barrier;
 }
 
-std::vector <IntermediateVec>& JobContext::getShuffledVectors ()
+std::vector <IntermediateVec> &JobContext::getShuffledVectors ()
 {
-    return shuffledVectors;
+  return shuffledVectors;
 }
 
-std::vector <IntermediateVec>& JobContext::getIntermediateVectors ()
+std::vector <IntermediateVec> &JobContext::getIntermediateVectors ()
 {
   return intermediateVectors;
 }
+
+
 
 void JobContext::setJobState (JobState state)
 {
@@ -383,7 +350,7 @@ void JobContext::insertToUniqueKeySet (K2 *uniqueKey)
   pthread_mutex_unlock (&jobMutex);
 }
 
-std::set<K2 *, K2Comparator>& JobContext::getUniqueKeySet ()
+std::set<K2 *, K2Comparator> &JobContext::getUniqueKeySet ()
 {
   return uniqueKeySet;
 }

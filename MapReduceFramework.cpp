@@ -68,19 +68,16 @@ void getJobState (JobHandle job, JobState *state)
   *state = it->second->getJobState ();
 }
 
-void closeJobHandle (JobHandle job)
+void closeJobHandle(JobHandle job)
 {
+  auto it = jobs.find(job);
+  if (it == jobs.end())
   {
-//    std::lock_guard<std::mutex> lock(jobsMutex);
-    auto it = jobs.find (job);
-    if (it == jobs.end ())
-    {
-      systemError ("Job not found");
-    }
-    waitForJob (job);
-    delete it->second;
-    jobs.erase (it);
+    systemError("Job not found");
   }
+  waitForJob(job);
+  delete it->second;
+  jobs.erase(it);
 }
 
 
